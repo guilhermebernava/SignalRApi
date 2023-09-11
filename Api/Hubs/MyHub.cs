@@ -1,10 +1,12 @@
 ﻿using Microsoft.AspNetCore.SignalR;
+using System.Collections.Concurrent;
 
 namespace Api.Hubs;
 
 //é a classe que vai poder ter os métodos que serão consumidos pela o CLIENT
 public class MyHub : Hub //precisamos herdar dessa classe HUB
 {
+    private static ConcurrentBag<string> names = new();
     public async IAsyncEnumerable<DateTime> Streaming(CancellationToken cancellationToken)
     {
         while (true)
@@ -16,28 +18,15 @@ public class MyHub : Hub //precisamos herdar dessa classe HUB
 
     }
 
-    public async IAsyncEnumerable<string> ShowNames(CancellationToken cancellationToken)
+    public async Task<List<string>> ShowNames(CancellationToken cancellationToken)
     {
-        while (true)
-        {
-            List<string> firstNames = new List<string>
-                {
-                    "John", "Jane", "Michael", "Emily", "David", "Sarah", "Daniel", "Olivia", "Robert", "Sophia"
-                };
 
-            List<string> lastNames = new List<string>
-                {
-                    "Smith", "Johnson", "Williams", "Brown", "Jones", "Davis", "Miller", "Wilson", "Moore", "Taylor"
-                };
+        return names.ToList();
+    }
 
-            Random random = new Random();
-
-            string firstName = firstNames[random.Next(firstNames.Count)];
-            string lastName = lastNames[random.Next(lastNames.Count)];
-
-            yield return firstName + " " + lastName;
-            await Task.Delay(3000, cancellationToken);
-        }
-
+    public async Task AddName(string name)
+    {
+        names.Add(name);
+        await Clients.All.SendAsync("ReceiveName", names);
     }
 }

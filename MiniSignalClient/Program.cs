@@ -6,26 +6,78 @@ const string URL = "https://localhost:7267/chat";
 //criar conexão com o servidor
 await using var connection = new HubConnectionBuilder().WithUrl(URL).Build();
 //conectando com o servidor
-await connection.StartAsync();
+
 
 //lendo os dados do servidor
-var t1 = Task.Run(async () =>
+//var t1 = Task.Run(async () =>
+//{
+//    //precisa informar qual o nome do método que vai ficar escutando
+//    await foreach (var date in connection.StreamAsync<DateTime>("Streaming"))
+//    {
+//        Console.WriteLine(date);
+//    }
+//});
+
+
+//await Task.Run(async () =>
+//{
+//    Console.Write("Escreva um nome: ");
+//    var input = Console.ReadLine();
+//    await connection.InvokeAsync("AddName", input!);
+
+//    await foreach (var date in connection.StreamAsync<List<string>>("ShowNames"))
+//    {
+//        date.ForEach(_ =>
+//        {
+//            Console.WriteLine(_);
+//        });
+//    }
+//});
+
+connection.On<List<string>>("ReceiveName", names =>
 {
-    //precisa informar qual o nome do método que vai ficar escutando
-    await foreach (var date in connection.StreamAsync<DateTime>("Streaming"))
+    foreach (var name in names)
     {
-        Console.WriteLine(date);
+        Console.WriteLine(name);
     }
+
 });
 
-
-var t2 = Task.Run(async () =>
+try
 {
-    await foreach (var date in connection.StreamAsync<string>("ShowNames"))
-    {
-        Console.WriteLine(date);
-    }
-});
+    await connection.StartAsync();
 
-Task.WaitAll(t1,t2);
+    while (true)
+    {
+        Console.Write("Enter a name (or 'exit' to quit): ");
+        string? input = Console.ReadLine();
+
+        if (input == null) continue;
+
+        if (input.ToLower() == "exit")
+        {
+            break;
+        }
+
+        await connection.InvokeAsync("AddName", input);
+        Console.WriteLine();
+
+
+    }
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"Error: {ex.Message}");
+    Console.ReadKey();
+}
+finally
+{
+    await connection.StopAsync();
+}
+
+
+
+
+
+
 
